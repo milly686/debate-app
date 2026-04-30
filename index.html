@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AI辩论教学平台</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #app {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 30px rgba(0,0,0,0.2);
+    }
+
+    /* ===== 入口选择页 ===== */
+    #entry-panel {
+      padding: 24px 20px;
+      background: white;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    #entry-panel h1 {
+      font-size: 24px;
+      color: #333;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    #entry-panel .subtitle {
+      text-align: center;
+      color: #999;
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .entry-card {
+      border: 2px solid #e8e8e8;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .entry-card:hover { border-color: #667eea; background: #f8f9ff; }
+    .entry-card:active { transform: scale(0.98); }
+
+    .entry-card .card-icon { font-size: 28px; margin-bottom: 8px; }
+    .entry-card .card-title { font-size: 17px; font-weight: 600; color: #333; margin-bottom: 4px; }
+    .entry-card .card-desc { font-size: 13px; color: #999; line-height: 1.5; }
+
+    /* ===== 设置面板 ===== */
+    #setup-panel {
+      padding: 20px;
+      background: white;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    #setup-panel h2 {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: #667eea;
+    }
+
+    .form-group textarea { min-height: 80px; resize: vertical; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: transform 0.15s;
+    }
+
+    .btn-primary:active { transform: scale(0.97); }
+
+    .btn-back {
+      display: inline-block;
+      color: #667eea;
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+
+    /* ===== 顶部信息栏 ===== */
+    #header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 12px 16px;
+      flex-shrink: 0;
+    }
+
+    #header h1 { font-size: 16px; font-weight: 600; }
+    #online-count { float: right; font-size: 12px; opacity: 0.8; }
+
+    #config-display {
+      margin-top: 6px;
+      font-size: 12px;
+      line-height: 1.5;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 6px 10px;
+    }
+
+    #config-display .label { font-weight: 600; opacity: 0.9; }
+    #config-display .value { opacity: 0.85; }
+
+    /* ===== 消息区域 ===== */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      background: #f0f0f0;
+    }
+
+    .msg {
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .msg.user { align-items: flex-end; }
+    .msg.assistant { align-items: flex-start; }
+    .msg.system { align-items: center; }
+
+    .msg-sender {
+      font-size: 11px;
+      color: #999;
+      margin-bottom: 3px;
+      padding: 0 4px;
+    }
+
+    .msg.user .msg-sender { color: #667eea; }
+
+    .msg-bubble {
+      max-width: 85%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 15px;
+      line-height: 1.6;
+      word-break: break-word;
+    }
+
+    .msg.user .msg-bubble {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-bottom-right-radius: 4px;
+    }
+
+    .msg.assistant .msg-bubble {
+      background: white;
+      color: #333;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .msg.assistant.is-summary .msg-bubble {
+      background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+      border-left: 3px solid #ff9800;
+    }
+
+    .msg.system .msg-bubble {
+      background: transparent;
+      color: #999;
+      font-size: 12px;
+      box-shadow: none;
+      padding: 4px 12px;
+      text-align: center;
+    }
+
+    .msg-time {
+      font-size: 11px;
+      color: #999;
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+
+    .msg.assistant .msg-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      padding-left: 4px;
+    }
+
+    .voice-btn {
+      background: none;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 13px;
+      color: #666;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+    }
+
+    .voice-btn:hover { background: #f0f0f0; }
+    .voice-btn.speaking { background: #667eea; color: white; border-color: #667eea; }
+
+    /* ===== 输入区域 ===== */
+    #input-area {
+      display: flex;
+      padding: 10px 12px;
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      flex-shrink: 0;
+      gap: 8px;
+    }
+
+    #msg-input {
+      flex: 1;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 10px 16px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    #msg-input:focus { border-color: #667eea; }
+
+    #send-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      font-size: 18px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: transform 0.15s;
+    }
+
+    #send-btn:active { transform: scale(0.92); }
+    #send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ===== 加载动画 ===== */
+    .typing-indicator {
+      display: flex;
+      gap: 4px;
+      padding: 10px 14px;
+      background: white;
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      width: fit-content;
+    }
+
+    .typing-indicator span {
+      width: 8px; height: 8px;
+      background: #bbb;
+      border-radius: 50%;
+      animation: typing 1.2s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ===== 总结标识 ===== */
+    .summary-badge {
+      display: inline-block;
+      background: #ff9800;
+      color: white;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+
+    /* ===== 滚动条美化 ===== */
+    #messages::-webkit-scrollbar { width: 4px; }
+    #messages::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- 入口选择 -->
+    <div id="entry-panel">
+      <h1>🎓 AI辩论教学平台</h1>
+      <div class="subtitle">传播学课堂 · 互动辩论</div>
+
+      <div class="entry-card" onclick="showSetup()">
+        <div class="card-icon">👩‍🏫</div>
+        <div class="card-title">我是老师</div>
+        <div class="card-desc">设置辩题、AI持方和人设，开启一场辩论</div>
+      </div>
+
+      <div class="entry-card" onclick="showJoin()">
+        <div class="card-icon">👨‍🎓</div>
+        <div class="card-title">我是学生</div>
+        <div class="card-desc">输入姓名，加入正在进行的辩论</div>
+      </div>
+    </div>
+
+    <!-- 老师设置面板 -->
+    <div id="setup-panel" style="display:none">
+      <span class="btn-back" onclick="showEntry()">← 返回</span>
+      <h2>🎯 设置辩论</h2>
+
+      <div class="form-group">
+        <label>你的姓名</label>
+        <input type="text" id="teacher-name" placeholder="例如：王老师">
+      </div>
+
+      <div class="form-group">
+        <label>辩题</label>
+        <input type="text" id="topic-input" placeholder="例如：社交媒体是否加剧了信息茧房？">
+        <div class="hint">输入本次辩论的辩题</div>
+      </div>
+
+      <div class="form-group">
+        <label>AI持方</label>
+        <select id="stance-input">
+          <option value="正方">正方（支持/赞同）</option>
+          <option value="反方">反方（反对/不赞同）</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>AI人设</label>
+        <textarea id="persona-input" placeholder="例如：你是一个严谨的传播学教授，擅长用学术理论分析媒体现象"></textarea>
+        <div class="hint">描述AI的角色身份和说话风格</div>
+      </div>
+
+      <button class="btn-primary" onclick="startDebate()">🚀 开始辩论</button>
+    </div>
+
+    <!-- 学生加入面板 -->
+    <div id="join-panel" style="display:none">
+      <span class="btn-back" onclick="showEntry()">← 返回</span>
+      <h2>🙋 加入辩论</h2>
+
+      <div class="form-group">
+        <label>你的姓名</label>
+        <input type="text" id="student-name" placeholder="例如：张三">
+      </div>
+
+      <button class="btn-primary" onclick="joinDebate()">🚪 进入辩论室</button>
+
+      <div style="margin-top: 16px; padding: 12px; background: #f0f7ff; border-radius: 8px; font-size: 13px; color: #555; line-height: 1.6;">
+        💡 如果提示"辩论尚未初始化"，说明老师还没有开始辩论，请等一下再试。
+      </div>
+    </div>
+
+    <!-- 聊天界面 -->
+    <div id="chat-panel" style="display:none; height:100%; flex-direction:column;">
+      <div id="header">
+        <h1>🎓 AI辩论教学平台 <span id="online-count"></span></h1>
+        <div id="config-display">
+          <span class="label">辩题：</span><span class="value" id="display-topic"></span>
+          &nbsp;|&nbsp;
+          <span class="label">AI持方：</span><span class="value" id="display-stance"></span>
+        </div>
+      </div>
+
+      <div id="messages"></div>
+
+      <div id="input-area">
+        <input type="text" id="msg-input" placeholder="输入你的观点..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <button id="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== 配置 ==========
+    const API_BASE = window.location.origin;
+
+    let myName = '';
+    let lastMessageId = 0;
+    let isWaiting = false;
+    let pollTimer = null;
+
+    // ========== 页面切换 ==========
+    function showEntry() {
+      document.getElementById('entry-panel').style.display = 'flex';
+      document.getElementById('setup-panel').style.display = 'none';
+      document.getElementById('join-panel').style.display = 'none';
+      document.getElementById('chat-panel').style.display = 'none';
+    }
+
+    function showSetup() {
+      document.getElementById('entry-panel').style.display = 'none';
+      document.getElementById('setup-panel').style.display = 'block';
+    }
+
+    function showJoin() {
+      document.getElementById('entry-panel').style.display = 'none';
+      document.getElementById('join-panel').style.display = 'block';
+    }
+
+    function showChat() {
+      document.getElementById('entry-panel').style.display = 'none';
+      document.getElementById('setup-panel').style.display = 'none';
+      document.getElementById('join-panel').style.display = 'none';
+      document.getElementById('chat-panel').style.display = 'flex';
+    }
+
+    // ========== 老师开始辩论 ==========
+    async function startDebate() {
+      const name = document.getElementById('teacher-name').value.trim();
+      if (!name) { alert('请输入你的姓名！'); return; }
+
+      const topic = document.getElementById('topic-input').value.trim();
+      if (!topic) { alert('请输入辩题！'); return; }
+
+      const stance = document.getElementById('stance-input').value;
+      const persona = document.getElementById('persona-input').value.trim();
+
+      myName = name;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/init`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic, stance, persona })
+        });
+        const data = await res.json();
+        if (!data.success) { alert('初始化失败：' + (data.error || '未知错误')); return; }
+
+        showChat();
+        document.getElementById('display-topic').textContent = topic;
+        document.getElementById('display-stance').textContent = stance;
+
+        addSystemMessage(`辩论已开始！辩题：「${topic}」，AI担任${stance}。`);
+        addSystemMessage(`老师${myName}已加入辩论室。`);
+
+        startPolling();
+      } catch (err) {
+        alert('网络错误，请检查API地址配置：' + err.message);
+      }
+    }
+
+    // ========== 学生加入辩论 ==========
+    async function joinDebate() {
+      const name = document.getElementById('student-name').value.trim();
+      if (!name) { alert('请输入你的姓名！'); return; }
+      myName = name;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/config`);
+        const data = await res.json();
+        if (!data.config) {
+          alert('辩论尚未初始化，请等老师先设置辩题！');
+          return;
+        }
+
+        showChat();
+        document.getElementById('display-topic').textContent = data.config.topic;
+        document.getElementById('display-stance').textContent = data.config.stance;
+
+        addSystemMessage(`${myName}加入了辩论室。`);
+
+        // 加载历史消息
+        await loadHistory();
+        startPolling();
+      } catch (err) {
+        alert('网络错误：' + err.message);
+      }
+    }
+
+    // ========== 发送消息 ==========
+    async function sendMessage() {
+      const input = document.getElementById('msg-input');
+      const content = input.value.trim();
+      if (!content || isWaiting) return;
+
+      input.value = '';
+      isWaiting = true;
+      document.getElementById('send-btn').disabled = true;
+
+      // 显示用户消息（带名字）
+      addMessage('user', content, false, myName);
+
+      // 显示"正在输入"动画
+      const typingId = showTyping();
+
+      try {
+        const res = await fetch(`${API_BASE}/api/message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content, sender: myName })
+        });
+        const data = await res.json();
+
+        removeTyping(typingId);
+
+        if (data.summary) {
+          addMessage('assistant', data.aiMsg.content, true, 'AI助手');
+        } else if (data.aiMsg) {
+          addMessage('assistant', data.aiMsg.content, false, 'AI助手');
+        } else {
+          addMessage('assistant', '抱歉，AI回复失败：' + (data.error || '未知错误'), false, '系统');
+        }
+      } catch (err) {
+        removeTyping(typingId);
+        addMessage('assistant', '网络错误，请重试', false, '系统');
+      } finally {
+        isWaiting = false;
+        document.getElementById('send-btn').disabled = false;
+      }
+    }
+
+    // ========== 添加消息到界面 ==========
+    function addMessage(role, content, isSummary, sender) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `msg ${role}`;
+
+      let html = '';
+      if (isSummary) {
+        html += '<div class="summary-badge">📋 辩论总结</div>';
+      }
+
+      // 显示发送者名字
+      if (sender && role !== 'system') {
+        html += `<div class="msg-sender">${escapeHtml(sender)}</div>`;
+      }
+
+      html += `<div class="msg-bubble">${formatContent(content)}</div>`;
+
+      if (role === 'assistant' && !isSummary) {
+        html += `
+          <div class="msg-actions">
+            <button class="voice-btn" onclick="playVoice(this, \`${escapeJs(content)}\`)">🔊 播放</button>
+          </div>`;
+      }
+
+      html += `<div class="msg-time">${formatTime()}</div>`;
+      msgDiv.innerHTML = html;
+
+      if (isSummary) msgDiv.classList.add('is-summary');
+      document.getElementById('messages').appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    // 系统消息
+    function addSystemMessage(text) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'msg system';
+      msgDiv.innerHTML = `<div class="msg-bubble">${escapeHtml(text)}</div>`;
+      document.getElementById('messages').appendChild(msgDiv);
+      scrollToBottom();
+    }
+
+    // ========== 格式化内容 ==========
+    function formatContent(text) {
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\n/g, '<br>');
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function escapeJs(str) {
+      return str.replace(/\\/g, '\\\\').replace(/`/g, '\\`').replace(/'/g, "\\'");
+    }
+
+    // ========== "正在输入"动画 ==========
+    function showTyping() {
+      const id = Date.now();
+      const el = document.createElement('div');
+      el.id = 'typing-' + id;
+      el.className = 'msg assistant';
+      el.innerHTML = `<div class="msg-sender">AI助手</div><div class="typing-indicator"><span></span><span></span><span></span></div>`;
+      document.getElementById('messages').appendChild(el);
+      scrollToBottom();
+      return id;
+    }
+
+    function removeTyping(id) {
+      const el = document.getElementById('typing-' + id);
+      if (el) el.remove();
+    }
+
+    // ========== 语音播放 ==========
+    function playVoice(btn, text) {
+      if (window.currentSpeech) {
+        speechSynthesis.cancel();
+        window.currentSpeech = null;
+        document.querySelectorAll('.voice-btn').forEach(b => b.classList.remove('speaking'));
+        return;
+      }
+
+      if (!('speechSynthesis' in window)) {
+        alert('您的浏览器不支持语音播放，请使用Chrome或Edge浏览器');
+        return;
+      }
+
+      const pureText = text.replace(/[#*`]/g, '').replace(/\[.*?\]\(.*?\)/g, '');
+      const utterance = new SpeechSynthesisUtterance(pureText);
+      utterance.lang = 'zh-CN';
+      utterance.rate = 0.95;
+
+      const voices = speechSynthesis.getVoices();
+      const zhVoice = voices.find(v => v.lang.startsWith('zh'));
+      if (zhVoice) utterance.voice = zhVoice;
+
+      utterance.onstart = () => btn.classList.add('speaking');
+      utterance.onend = () => { btn.classList.remove('speaking'); window.currentSpeech = null; };
+      utterance.onerror = () => { btn.classList.remove('speaking'); window.currentSpeech = null; };
+
+      window.currentSpeech = utterance;
+      speechSynthesis.speak(utterance);
+    }
+
+    if ('speechSynthesis' in window) {
+      speechSynthesis.getVoices();
+      speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+    }
+
+    // ========== 轮询新消息 ==========
+    function startPolling() {
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/messages?since=${lastMessageId}`);
+          const data = await res.json();
+          if (data.messages && data.messages.length > 0) {
+            for (const msg of data.messages) {
+              if (msg.id > lastMessageId) {
+                const existing = document.querySelector(`[data-msgid="${msg.id}"]`);
+                if (!existing) {
+                  // 消息发送者名字
+                  let sender = msg.sender || (msg.role === 'assistant' ? 'AI助手' : '同学');
+                  // 如果是自己发的，显示自己的名字
+                  if (msg.role === 'user' && msg.sender === myName) continue; // 避免重复显示
+                  addMessage(msg.role, msg.content, !!msg.isSummary, sender);
+                }
+              }
+            }
+            lastMessageId = data.latestId;
+          }
+        } catch (err) { /* 忽略轮询错误 */ }
+      }, 2000); // 每2秒轮询一次
+    }
+
+    // ========== 工具函数 ==========
+    function scrollToBottom() {
+      const el = document.getElementById('messages');
+      setTimeout(() => el.scrollTop = el.scrollHeight, 50);
+    }
+
+    function formatTime() {
+      const d = new Date();
+      return `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+    }
+
+    // ========== 页面初始化 ==========
+    async function initPage() {
+      try {
+        const res = await fetch(`${API_BASE}/api/config`);
+        const data = await res.json();
+        if (data.config) {
+          // 已有辩论进行中 - 直接显示学生加入界面
+          document.getElementById('entry-panel').style.display = 'none';
+          document.getElementById('join-panel').style.display = 'block';
+        }
+      } catch (err) {
+        // 首次使用或API不可用，显示入口页面
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch(`${API_BASE}/api/messages?since=0`);
+        const data = await res.json();
+        for (const msg of data.messages) {
+          let sender = msg.sender || (msg.role === 'assistant' ? 'AI助手' : '同学');
+          addMessage(msg.role, msg.content, !!msg.isSummary, sender);
+        }
+        lastMessageId = data.latestId;
+      } catch (err) { /* 忽略 */ }
+    }
+
+    initPage();
+  </script>
+</body>
+</html>
