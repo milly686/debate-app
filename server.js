@@ -1,3 +1,4 @@
+const fs = require('fs');
 const express = require('express');
 const path = require('path');
 const axios = require('axios');
@@ -10,16 +11,20 @@ const PORT = process.env.PORT || 3000;
 // 中间件
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// 静态文件服务：优先 public 目录，回退到根目录
+const publicDir = path.join(__dirname, 'public');
+const hasPublicDir = fs.existsSync(publicDir) && fs.existsSync(path.join(publicDir, 'index.html'));
+app.use(express.static(hasPublicDir ? publicDir : __dirname));
 
 // ========== 环境变量 ==========
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || '';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // ========== 内存数据库 ==========
-let debateConfig = null;    // 当前辩论配置
-let messages = [];           // 消息列表
-let nextMsgId = 1;           // 下一个消息ID
+let debateConfig = null;
+let messages = [];
+let nextMsgId = 1;
 
 // ========== DeepSeek API 调用 ==========
 async function callDeepSeek(msgs) {
@@ -90,7 +95,6 @@ app.post('/api/init', (req, res) => {
     return res.status(400).json({ error: '缺少辩题' });
   }
 
-  // 重置辩论数据
   debateConfig = {
     topic,
     stance: stance || '正方',
@@ -129,7 +133,6 @@ app.post('/api/message', async (req, res) => {
     return res.status(500).json({ error: '未配置DEEPSEEK_API_KEY' });
   }
 
-  // 结束辩论
   if (content.trim() === '结束辩论') {
     const summary = await generateSummary(debateConfig, messages);
     const aiMsg = {
@@ -148,7 +151,6 @@ app.post('/api/message', async (req, res) => {
     });
   }
 
-  // 添加用户消息
   const userMsg = {
     id: nextMsgId++,
     role: 'user',
@@ -158,7 +160,6 @@ app.post('/api/message', async (req, res) => {
   };
   messages.push(userMsg);
 
-  // 构建 DeepSeek 请求
   const systemPrompt = `你是一个辩论AI助手，正在与传播学课堂的学生进行辩论。
 
 【辩题】${debateConfig.topic}
@@ -206,14 +207,16 @@ app.post('/api/message', async (req, res) => {
   }
 });
 
-// 所有其他请求返回 index.html（前端路由）
+// 所有其他请求返回 index.html
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const indexPath = hasPublicDir
+    ? path.join(__dirname, 'public', 'index.html')
+    : path.join(__dirname, 'index.html');
+  res.sendFile(indexPath);
 });
 
-// ========== 启动服务器 ==========
+// 启动服务器
 app.listen(PORT, () => {
   console.log(`AI辩论教学平台已启动！`);
   console.log(`访问地址：http://localhost:${PORT}`);
-  console.log(`API地址：http://localhost:${PORT}/api/config`);
 });
